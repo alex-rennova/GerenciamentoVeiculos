@@ -1,0 +1,48 @@
+<div class="top-row ps-3 navbar navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="">🚗 AutoGestão .NET</a>
+        <button title="Menu de Navegação" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-speedometer2 me-2" aria-hidden="true"></span> Dashboard
+            </NavLink>
+        </div>
+
+        <!-- Plataforma de Treinamento Live Coding -->
+        <div class="nav-item px-3 my-1">
+            <NavLink class="nav-link bg-primary bg-opacity-25 rounded-2 text-white border border-primary border-opacity-50" href="treinamento">
+                <span class="bi bi-mortarboard-fill me-2 text-warning" aria-hidden="true"></span>
+                <strong>🎓 Treinador Live Code</strong>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="proprietarios">
+                <span class="bi bi-people-fill me-2" aria-hidden="true"></span> Proprietários
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="veiculos">
+                <span class="bi bi-car-front-fill me-2" aria-hidden="true"></span> Veículos
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

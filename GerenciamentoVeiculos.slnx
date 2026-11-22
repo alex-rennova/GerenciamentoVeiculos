@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="GerenciamentoVeiculos.Api\GerenciamentoVeiculos.Api.csproj" />
+  <Project Path="GerenciamentoVeiculos.Application\GerenciamentoVeiculos.Application.csproj" />
+  <Project Path="GerenciamentoVeiculos.Domain\GerenciamentoVeiculos.Domain.csproj" />
+  <Project Path="GerenciamentoVeiculos.Infrastructure\GerenciamentoVeiculos.Infrastructure.csproj" />
+  <Project Path="GerenciamentoVeiculos.UnitTests\GerenciamentoVeiculos.UnitTests.csproj" />
+  <Project Path="GerenciamentoVeiculos.Web/GerenciamentoVeiculos.Web.csproj" />
+</Solution>

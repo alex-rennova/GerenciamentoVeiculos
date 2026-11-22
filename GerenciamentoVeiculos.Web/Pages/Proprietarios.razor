@@ -1,0 +1,334 @@
+@page "/proprietarios"
+@inject IProprietarioHttpService ProprietarioService
+
+<PageTitle>Proprietários - AutoGestão .NET</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">👥 Gestão de Proprietários</h2>
+            <p class="text-muted mb-0">Cadastre, edite e consulte proprietários de veículos cadastrados no sistema.</p>
+        </div>
+        <button class="btn btn-primary" @onclick="AbrirModalNovo">
+            ➕ Novo Proprietário
+        </button>
+    </div>
+
+    <!-- Mensagens de Feedback (Sucesso / Erro) -->
+    @if (!string.IsNullOrEmpty(mensagemSucesso))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>Sucesso!</strong> @mensagemSucesso
+            <button type="button" class="btn-close" @onclick="() => mensagemSucesso = null"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(mensagemErro))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <strong>Atenção (Regra de Negócio):</strong> @mensagemErro
+            <button type="button" class="btn-close" @onclick="() => mensagemErro = null"></button>
+        </div>
+    }
+
+    <!-- Tabela de Proprietários -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (carregando)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-2 mb-0">Carregando proprietários...</p>
+                </div>
+            }
+            else if (!proprietarios.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <p class="fs-5 mb-0">Nenhum proprietário encontrado.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nome</th>
+                                <th>CPF</th>
+                                <th>Data de Nascimento</th>
+                                <th class="text-center">Veículos Vinculados</th>
+                                <th class="text-end pe-3">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var prop in proprietarios)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark">@prop.Nome</div>
+                                        <span class="text-muted small">Id: @prop.Id</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border font-monospace">@prop.CpfFormatado</span>
+                                    </td>
+                                    <td>@prop.DataNascimento.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">
+                                        @if (prop.QuantidadeVeiculos > 0)
+                                        {
+                                            <span class="badge bg-primary rounded-pill px-3 py-2">
+                                                🚘 @prop.QuantidadeVeiculos veículo(s)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary rounded-pill px-3 py-2">
+                                                Nenhum veículo
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirModalEditar(prop)">
+                                            ✏️ Editar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => SolicitarExclusao(prop)">
+                                            🗑️ Excluir
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cadastro / Edição -->
+@if (exibirModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold">@(modoEdicao ? "Editar Proprietário" : "Cadastrar Novo Proprietário")</h5>
+                    <button type="button" class="btn-close" @onclick="FecharModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    @if (!string.IsNullOrEmpty(modalErro))
+                    {
+                        <div class="alert alert-danger small mb-3">
+                            @modalErro
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nome Completo (3 a 100 caracteres)</label>
+                        <input type="text" class="form-control" @bind="formNome" placeholder="Ex: Ayrton Senna da Silva" maxlength="100" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">CPF (apenas números ou formatado)</label>
+                        <input type="text" class="form-control font-monospace" @bind="formCpf" placeholder="Ex: 123.456.789-09" maxlength="14" />
+                        <div class="form-text">O CPF é validado matematicamente pelo algoritmo da Receita Federal.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Data de Nascimento</label>
+                        <input type="date" class="form-control" @bind="formDataNascimento" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="FecharModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" @onclick="SalvarProprietario" disabled="@salvando">
+                        @if (salvando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Salvar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal de Confirmação de Exclusão -->
+@if (proprietarioParaExcluir != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => proprietarioParaExcluir = null"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-2">Deseja realmente excluir o proprietário <strong>@proprietarioParaExcluir.Nome</strong>?</p>
+                    @if (proprietarioParaExcluir.QuantidadeVeiculos > 0)
+                    {
+                        <div class="alert alert-warning small mb-0">
+                            ⚠️ <strong>Atenção:</strong> Este proprietário possui <strong>@proprietarioParaExcluir.QuantidadeVeiculos</strong> veículo(s) vinculado(s). A API rejeitará a exclusão com código <strong>409 Conflict</strong>.
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="() => proprietarioParaExcluir = null">Cancelar</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmarExclusao" disabled="@salvando">
+                        @if (salvando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Excluir Definitivamente
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProprietarioRespostaDto> proprietarios = new();
+    private bool carregando = true;
+    private bool salvando = false;
+    private string? mensagemSucesso;
+    private string? mensagemErro;
+    private string? modalErro;
+
+    // Modal
+    private bool exibirModal = false;
+    private bool modoEdicao = false;
+    private Guid? proprietarioEditandoId;
+    private string formNome = string.Empty;
+    private string formCpf = string.Empty;
+    private DateTime formDataNascimento = DateTime.Today.AddYears(-25);
+
+    // Exclusão
+    private ProprietarioRespostaDto? proprietarioParaExcluir;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarProprietarios();
+    }
+
+    private async Task CarregarProprietarios()
+    {
+        carregando = true;
+        try
+        {
+            proprietarios = await ProprietarioService.ObterTodosAsync();
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private void AbrirModalNovo()
+    {
+        modoEdicao = false;
+        proprietarioEditandoId = null;
+        formNome = string.Empty;
+        formCpf = string.Empty;
+        formDataNascimento = DateTime.Today.AddYears(-25);
+        modalErro = null;
+        exibirModal = true;
+    }
+
+    private void AbrirModalEditar(ProprietarioRespostaDto dto)
+    {
+        modoEdicao = true;
+        proprietarioEditandoId = dto.Id;
+        formNome = dto.Nome;
+        formCpf = dto.Cpf;
+        formDataNascimento = dto.DataNascimento;
+        modalErro = null;
+        exibirModal = true;
+    }
+
+    private void FecharModal()
+    {
+        exibirModal = false;
+        modalErro = null;
+    }
+
+    private async Task SalvarProprietario()
+    {
+        modalErro = null;
+        mensagemSucesso = null;
+        mensagemErro = null;
+        salvando = true;
+
+        try
+        {
+            if (modoEdicao && proprietarioEditandoId.HasValue)
+            {
+                var dto = new ProprietarioAtualizacaoDto(formNome, formCpf, formDataNascimento);
+                var (sucesso, erro) = await ProprietarioService.AtualizarAsync(proprietarioEditandoId.Value, dto);
+                if (sucesso)
+                {
+                    mensagemSucesso = "Proprietário atualizado com sucesso!";
+                    FecharModal();
+                    await CarregarProprietarios();
+                }
+                else
+                {
+                    modalErro = erro;
+                }
+            }
+            else
+            {
+                var dto = new ProprietarioCriacaoDto(formNome, formCpf, formDataNascimento);
+                var (sucesso, erro) = await ProprietarioService.CriarAsync(dto);
+                if (sucesso)
+                {
+                    mensagemSucesso = "Proprietário cadastrado com sucesso!";
+                    FecharModal();
+                    await CarregarProprietarios();
+                }
+                else
+                {
+                    modalErro = erro;
+                }
+            }
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private void SolicitarExclusao(ProprietarioRespostaDto prop)
+    {
+        proprietarioParaExcluir = prop;
+    }
+
+    private async Task ConfirmarExclusao()
+    {
+        if (proprietarioParaExcluir == null) return;
+
+        mensagemSucesso = null;
+        mensagemErro = null;
+        salvando = true;
+
+        try
+        {
+            var (sucesso, erro) = await ProprietarioService.ExcluirAsync(proprietarioParaExcluir.Id);
+            if (sucesso)
+            {
+                mensagemSucesso = $"Proprietário '{proprietarioParaExcluir.Nome}' excluído com sucesso!";
+                proprietarioParaExcluir = null;
+                await CarregarProprietarios();
+            }
+            else
+            {
+                mensagemErro = erro;
+                proprietarioParaExcluir = null;
+            }
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+}

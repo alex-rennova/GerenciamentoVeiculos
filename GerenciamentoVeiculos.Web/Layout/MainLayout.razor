@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex justify-content-between align-items-center bg-white shadow-sm">
+            <span class="text-secondary small fw-semibold">
+                🟢 API Backend: <code class="text-primary">http://localhost:5000</code>
+            </span>
+            <div>
+                <a href="http://localhost:5000" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                    📄 Swagger OpenAPI
+                </a>
+            </div>
+        </div>
+
+        <article class="content px-4 py-4">
+            @Body
+        </article>
+    </main>
+</div>

@@ -1,0 +1,740 @@
+@page "/treinamento"
+@using GerenciamentoVeiculos.Web.Models
+@using GerenciamentoVeiculos.Web.Data
+
+<PageTitle>Plataforma de Treinamento Live Coding .NET 8 Sênior</PageTitle>
+
+<div class="container-fluid px-3 py-2">
+    <!-- Topo da Plataforma com Abas Principais -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center bg-dark text-white p-3 rounded-3 shadow-sm mb-3">
+        <div class="d-flex align-items-center gap-2 mb-2 mb-md-0">
+            <span class="fs-3">🎓</span>
+            <div>
+                <h4 class="mb-0 fw-bold">LiveCode Trainer <span class="badge bg-primary text-uppercase font-monospace fs-6">.NET 8 Sênior</span></h4>
+                <small class="text-white-50">Treinador Particular para Entrevistas Técnicas e Live Coding (C# / REST / Azure)</small>
+            </div>
+        </div>
+
+        <!-- Seletor de Modo de Estudo -->
+        <div class="btn-group shadow-sm" role="group">
+            <button class="btn btn-sm @(modoAtivo == ModoVisualizacaoTreinamento.Aulas ? "btn-primary fw-bold" : "btn-outline-light")"
+                    @onclick="() => modoAtivo = ModoVisualizacaoTreinamento.Aulas">
+                📖 12 Módulos
+            </button>
+            <button class="btn btn-sm @(modoAtivo == ModoVisualizacaoTreinamento.Debugger ? "btn-warning text-dark fw-bold" : "btn-outline-light")"
+                    @onclick="() => modoAtivo = ModoVisualizacaoTreinamento.Debugger">
+                ⚡ Simulador de Debug
+            </button>
+            <button class="btn btn-sm @(modoAtivo == ModoVisualizacaoTreinamento.Fala ? "btn-info text-dark fw-bold" : "btn-outline-light")"
+                    @onclick="() => modoAtivo = ModoVisualizacaoTreinamento.Fala">
+                🎙️ O Que Falar & Objeções
+            </button>
+            <button class="btn btn-sm @(modoAtivo == ModoVisualizacaoTreinamento.Entrevista ? "btn-danger fw-bold" : "btn-outline-light")"
+                    @onclick="() => modoAtivo = ModoVisualizacaoTreinamento.Entrevista">
+                ⏱️ Modo Entrevista Real
+            </button>
+            <button class="btn btn-sm @(modoAtivo == ModoVisualizacaoTreinamento.Matriz ? "btn-secondary fw-bold" : "btn-outline-light")"
+                    @onclick="() => modoAtivo = ModoVisualizacaoTreinamento.Matriz">
+                📋 Matriz de Requisitos
+            </button>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODO 1: TRILHA DE AULAS (12 MÓDULOS COMPLETOS)                            -->
+    <!-- ========================================================================= -->
+    @if (modoAtivo == ModoVisualizacaoTreinamento.Aulas)
+    {
+        <div class="row g-3">
+            <!-- Sidebar dos Módulos -->
+            <div class="col-lg-3 col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold small text-uppercase text-secondary">Trilha de Aulas</span>
+                        <span class="badge bg-secondary font-monospace">@modulosConcluidosCount / @modulos.Count feitos</span>
+                    </div>
+                    <div class="list-group list-group-flush overflow-auto" style="max-height: 75vh;">
+                        @foreach (var mod in modulos)
+                        {
+                            var isAtivo = mod.Id == moduloSelecionadoId;
+                            var isConcluido = modulosConcluidos.GetValueOrDefault(mod.Id, false);
+
+                            <button class="list-group-item list-group-item-action text-start p-3 @(isAtivo ? "active" : "")"
+                                    @onclick="() => moduloSelecionadoId = mod.Id">
+                                <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                    <small class="font-monospace @(isAtivo ? "text-white" : "text-primary") fw-bold">
+                                        MÓDULO @mod.Numero.ToString("D2")
+                                    </small>
+                                    <span>@(isConcluido ? "✅" : "⚪")</span>
+                                </div>
+                                <div class="fw-bold small mb-1">@mod.IconeEmoji @mod.Titulo.Split('—')[1]</div>
+                                <small class="@(isAtivo ? "text-white-50" : "text-muted") text-truncate d-block">
+                                    ⏱️ @mod.TempoMinutos min • @mod.Subtitulo
+                                </small>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conteúdo da Aula Selecionada -->
+            <div class="col-lg-9 col-md-8">
+                @if (moduloAtual != null)
+                {
+                    <div class="card shadow-sm border-0 p-4 mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center pb-3 border-bottom mb-3">
+                            <div>
+                                <span class="badge bg-primary font-monospace mb-1">MÓDULO @moduloAtual.Numero.ToString("D2")</span>
+                                <h3 class="fw-bold mb-0 text-dark">@moduloAtual.IconeEmoji @moduloAtual.Titulo</h3>
+                                <p class="text-muted mb-0">@moduloAtual.Subtitulo</p>
+                            </div>
+                            <button class="btn btn-sm @(modulosConcluidos.GetValueOrDefault(moduloAtual.Id, false) ? "btn-success" : "btn-outline-success")"
+                                    @onclick="() => AlternarConclusaoModulo(moduloAtual.Id)">
+                                @(modulosConcluidos.GetValueOrDefault(moduloAtual.Id, false) ? "✔ Módulo Concluído" : "Marcar como Concluído")
+                            </button>
+                        </div>
+
+                        <!-- Seções A e B -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border-start border-primary border-4 h-100">
+                                    <h6 class="fw-bold text-primary mb-1">🎯 A. O que vamos construir?</h6>
+                                    <p class="small text-secondary mb-0">@moduloAtual.SecaoA_OQueVamosConstruir</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="p-3 bg-light rounded-3 border-start border-purple border-4 h-100">
+                                    <h6 class="fw-bold text-dark mb-1">💡 B. Por que precisamos disso?</h6>
+                                    <p class="small text-secondary mb-0">@moduloAtual.SecaoB_PorQuePrecisamos</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Abas da Aula -->
+                        <ul class="nav nav-tabs mb-3">
+                            <li class="nav-item">
+                                <button class="nav-link @(abaAulaAtiva == "codigo" ? "active fw-bold text-primary" : "")"
+                                        @onclick='() => abaAulaAtiva = "codigo"'>
+                                    💻 C & D. Código Real & Linhas
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(abaAulaAtiva == "fluxo" ? "active fw-bold text-primary" : "")"
+                                        @onclick='() => abaAulaAtiva = "fluxo"'>
+                                    🗺️ E & F. Fluxo Visual & Debug
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(abaAulaAtiva == "entrevista" ? "active fw-bold text-primary" : "")"
+                                        @onclick='() => abaAulaAtiva = "entrevista"'>
+                                    🎙️ G & H. Fala em 1ª Pessoa & Objeções
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(abaAulaAtiva == "tradeoffs" ? "active fw-bold text-primary" : "")"
+                                        @onclick='() => abaAulaAtiva = "tradeoffs"'>
+                                    ⚖️ I. Trade-Offs
+                                </button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link @(abaAulaAtiva == "exercicio" ? "active fw-bold text-primary" : "")"
+                                        @onclick='() => abaAulaAtiva = "exercicio"'>
+                                    ✏️ J. Exercício Prático
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Aba: Código Real -->
+                        @if (abaAulaAtiva == "codigo")
+                        {
+                            <div class="border rounded-3 overflow-hidden shadow-sm mb-4">
+                                <div class="bg-dark text-white px-3 py-2 d-flex justify-content-between align-items-center font-monospace small">
+                                    <span>📁 @moduloAtual.SecaoC_Arquivo (@moduloAtual.SecaoC_Caminho)</span>
+                                    <span class="badge bg-secondary">C# / .NET 8</span>
+                                </div>
+                                <div class="p-3 bg-light text-dark font-monospace small overflow-auto" style="max-height: 420px; white-space: pre-wrap;">
+                                    @moduloAtual.SecaoC_Codigo
+                                </div>
+                            </div>
+
+                            @if (moduloAtual.SecaoD_Linhas.Any())
+                            {
+                                <h6 class="fw-bold text-dark mb-2">🔍 D. Análise Aprofundada Linha por Linha:</h6>
+                                <div class="accordion mb-3" id="accordionLinhas">
+                                    @foreach (var l in moduloAtual.SecaoD_Linhas)
+                                    {
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed py-2 text-primary font-monospace small" type="button" data-bs-toggle="collapse" data-bs-target="#col_@l.Linha">
+                                                    <strong>Linha @l.Linha:</strong> &nbsp; <code>@l.Trecho</code>
+                                                </button>
+                                            </h2>
+                                            <div id="col_@l.Linha" class="accordion-collapse collapse show">
+                                                <div class="accordion-body small bg-light">
+                                                    <div class="row g-2">
+                                                        <div class="col-md-6">
+                                                            <strong>🛠️ O que faz:</strong> @l.OQueFaz<br />
+                                                            <strong class="text-muted">Por que existe:</strong> @l.PorQueExiste
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <strong>⚡ Em runtime:</strong> @l.EmRuntime<br />
+                                                            <strong class="text-danger">Pode dar errado:</strong> @l.PodeDarErrado
+                                                        </div>
+                                                        <div class="col-12 mt-2 pt-2 border-top text-primary">
+                                                            <strong>🎙️ Como explicar ao entrevistador:</strong> <em>@l.ComoExplicar</em>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+
+                        <!-- Aba: Fluxo Visual & Debugging -->
+                        @if (abaAulaAtiva == "fluxo")
+                        {
+                            <h6 class="fw-bold text-dark mb-3">🗺️ @moduloAtual.SecaoE_TituloFluxo</h6>
+                            <div class="row g-3 mb-4">
+                                @foreach (var etapa in moduloAtual.SecaoE_Etapas)
+                                {
+                                    <div class="col-md-6 col-lg-3">
+                                        <div class="p-3 rounded-3 bg-light border h-100 shadow-sm">
+                                            <span class="badge bg-primary font-monospace mb-1">Passo @etapa.Id</span>
+                                            <h6 class="fw-bold mb-1">@etapa.Titulo</h6>
+                                            <p class="small text-muted mb-2">@etapa.Descricao</p>
+                                            <small class="font-monospace text-primary fw-semibold d-block border-top pt-1">@etapa.DetalheTecnico</small>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="p-4 bg-warning bg-opacity-10 border border-warning rounded-3">
+                                <h6 class="fw-bold text-dark mb-2">⚡ F. Onde colocar breakpoints para investigar:</h6>
+                                <p class="small mb-2"><strong>Ponto de parada recomendado:</strong> <code>@moduloAtual.SecaoF_PontoParada</code></p>
+                                <div class="small text-secondary mb-2">
+                                    <strong>Valores esperados nas variáveis:</strong>
+                                    <ul>
+                                        @foreach (var v in moduloAtual.SecaoF_Variaveis)
+                                        {
+                                            <li><code>@v.Key</code>: <span class="text-dark font-monospace">@v.Value</span></li>
+                                        }
+                                    </ul>
+                                </div>
+                                <p class="small text-muted mb-0"><em>@moduloAtual.SecaoF_Explicacao</em></p>
+                            </div>
+                        }
+
+                        <!-- Aba: Fala em 1ª Pessoa & Objeções -->
+                        @if (abaAulaAtiva == "entrevista")
+                        {
+                            <div class="p-4 bg-primary bg-opacity-10 border border-primary rounded-3 mb-4">
+                                <h6 class="fw-bold text-primary mb-2">🎙️ G. O que falar para a banca (Fala em 1ª Pessoa - 30 a 60s):</h6>
+                                <p class="lead fs-6 fst-italic text-dark mb-3 bg-white p-3 rounded border">
+                                    "@moduloAtual.SecaoG_FalaPrimeiraPessoa"
+                                </p>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach (var kw in moduloAtual.SecaoG_PalavrasChave)
+                                    {
+                                        <span class="badge bg-secondary font-monospace">#@kw</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <h6 class="fw-bold text-dark mb-3">❓ H. Perguntas Difíceis & Possíveis Objeções do Avaliador:</h6>
+                            @foreach (var p in moduloAtual.SecaoH_PerguntasDificeis)
+                            {
+                                <div class="p-3 bg-light rounded-3 border mb-3">
+                                    <div class="fw-bold text-dark mb-1">Pergunta do Tech Lead: "@p.Pergunta"</div>
+                                    <div class="p-2 bg-white rounded border mb-2 small text-secondary">
+                                        <strong class="text-success d-block mb-1">Resposta de Sênior:</strong>
+                                        @p.RespostaSenior
+                                    </div>
+                                    <small class="text-danger fst-italic">⚠️ Possível tréplica: "@p.PossivelObjecao"</small>
+                                </div>
+                            }
+                        }
+
+                        <!-- Aba: Trade-offs -->
+                        @if (abaAulaAtiva == "tradeoffs")
+                        {
+                            <h6 class="fw-bold text-dark mb-3">⚖️ I. Trade-Offs da Decisão de Arquitetura:</h6>
+                            @foreach (var to in moduloAtual.SecaoI_TradeOffs)
+                            {
+                                <div class="card p-3 mb-3 border-0 bg-light shadow-sm">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                        <span class="fw-bold text-success">Abordagem Escolhida: @to.AbordagemEscolhida</span>
+                                        <span class="text-muted small">Alternativa: @to.Alternativa</span>
+                                    </div>
+                                    <div class="row g-2 small">
+                                        <div class="col-md-6">
+                                            <strong class="text-success">Vantagens (Prós):</strong>
+                                            <ul class="mb-0">
+                                                @foreach (var pro in to.Pros)
+                                                {
+                                                    <li>@pro</li>
+                                                }
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong class="text-danger">Desvantagens (Contras):</strong>
+                                            <ul class="mb-0">
+                                                @foreach (var contra in to.Contras)
+                                                {
+                                                    <li>@contra</li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 pt-2 border-top small text-muted">
+                                        <strong>Quando usar a alternativa?</strong> @to.QuandoUsarAlternativa
+                                    </div>
+                                </div>
+                            }
+                        }
+
+                        <!-- Aba: Exercício Prático -->
+                        @if (abaAulaAtiva == "exercicio")
+                        {
+                            <div class="p-4 bg-light rounded-3 border">
+                                <h6 class="fw-bold text-dark mb-2">✏️ J. Exercício Prático do Módulo:</h6>
+                                <p class="small text-secondary mb-3">@moduloAtual.SecaoJ_Exercicio.Enunciado</p>
+                                
+                                <div class="p-3 bg-dark text-white rounded font-monospace small mb-3">
+                                    @moduloAtual.SecaoJ_Exercicio.CodigoInicial
+                                </div>
+
+                                <p class="small text-primary mb-3">💡 <strong>Dica:</strong> @moduloAtual.SecaoJ_Exercicio.Dica</p>
+
+                                <button class="btn btn-sm btn-outline-secondary mb-3" @onclick="() => exibirSolucaoExercicio = !exibirSolucaoExercicio">
+                                    @(exibirSolucaoExercicio ? "Ocultar Solução" : "Revelar Solução Esperada")
+                                </button>
+
+                                @if (exibirSolucaoExercicio)
+                                {
+                                    <div class="p-3 bg-success bg-opacity-10 border border-success rounded font-monospace small text-dark mb-3">
+                                        @moduloAtual.SecaoJ_Exercicio.SolucaoEsperada
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- MODO 2: SIMULADOR VISUAL DE DEBUGGING                                      -->
+    <!-- ========================================================================= -->
+    @if (modoAtivo == ModoVisualizacaoTreinamento.Debugger)
+    {
+        var cenarioAtual = cenariosDebug.FirstOrDefault(c => c.Id == cenarioDebugAtivoId) ?? cenariosDebug.First();
+        var passoAtual = cenarioAtual.Passos.ElementAtOrDefault(passoDebugAtualIndex) ?? cenarioAtual.Passos.First();
+
+        <div class="card shadow-sm border-0 p-4 mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center pb-3 border-bottom mb-3">
+                <div>
+                    <span class="badge bg-warning text-dark font-monospace mb-1">SIMULADOR VISUAL DE EXECUÇÃO</span>
+                    <h4 class="fw-bold mb-0">@cenarioAtual.Titulo</h4>
+                    <p class="text-muted small mb-0">@cenarioAtual.Descricao</p>
+                </div>
+                <div class="btn-group">
+                    @foreach (var c in cenariosDebug)
+                    {
+                        <button class="btn btn-sm @(c.Id == cenarioDebugAtivoId ? "btn-warning fw-bold text-dark" : "btn-outline-secondary")"
+                                @onclick="() => TrocarCenarioDebug(c.Id)">
+                            <span class="badge bg-dark text-white">@c.MetodoHttp</span> @c.Titulo.Split('(')[0]
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Painel do Passo de Execução -->
+            <div class="row g-3">
+                <div class="col-lg-8">
+                    <!-- Código com Destaque -->
+                    <div class="border rounded-3 overflow-hidden shadow-sm mb-3">
+                        <div class="bg-dark text-white px-3 py-2 d-flex justify-content-between align-items-center font-monospace small">
+                            <span>🟡 @passoAtual.Arquivo — Linha @passoAtual.LinhaNumero (@passoAtual.Metodo)</span>
+                            <span class="badge bg-warning text-dark">Passo @passoAtual.PassoNumero de @passoAtual.TotalPassos</span>
+                        </div>
+                        <div class="p-3 bg-dark text-warning font-monospace small">
+                            <div class="p-2 bg-black rounded border border-warning">
+                                @passoAtual.TrechoCodigo
+                            </div>
+                        </div>
+                        <div class="p-3 bg-light border-top small">
+                            <strong class="text-primary d-block mb-1">⚙️ O que o .NET Runtime está executando agora:</strong>
+                            <p class="text-secondary mb-1">@passoAtual.OQueDotNetEstaFazendo</p>
+                            <small class="text-muted">⏩ <strong>Próxima instrução:</strong> @passoAtual.ProximaInstrucao</small>
+                        </div>
+                    </div>
+
+                    <!-- O que falar agora -->
+                    <div class="p-3 bg-warning bg-opacity-10 border border-warning rounded-3 mb-3">
+                        <strong class="text-dark d-block mb-1">🎙️ O que falar para o entrevistador agora:</strong>
+                        <p class="fst-italic text-dark mb-0">
+                            "@passoAtual.FalaParaEntrevistador"
+                        </p>
+                    </div>
+
+                    <!-- Controles -->
+                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded-3 border">
+                        <button class="btn btn-sm btn-secondary" @onclick="PassoDebugAnterior" disabled="@(passoDebugAtualIndex == 0)">
+                            ⬅️ Passo Anterior
+                        </button>
+                        <span class="font-monospace small">Passo @(passoDebugAtualIndex + 1) de @cenarioAtual.Passos.Count</span>
+                        <button class="btn btn-sm btn-primary fw-bold" @onclick="PassoDebugProximo" disabled="@(passoDebugAtualIndex == cenarioAtual.Passos.Count - 1)">
+                            Próximo Passo ➡️
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Painel Lateral de Variáveis e Call Stack -->
+                <div class="col-lg-4">
+                    <div class="card p-3 bg-light border-0 shadow-sm mb-3">
+                        <h6 class="fw-bold text-dark mb-2">📋 Variáveis Locais (Locals)</h6>
+                        <div class="font-monospace small space-y-1">
+                            @foreach (var v in passoAtual.VariaveisLocais)
+                            {
+                                <div class="p-1 bg-white rounded border mb-1 d-flex justify-content-between">
+                                    <span class="text-muted">@v.Key:</span>
+                                    <span class="text-primary fw-bold">@v.Value</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="card p-3 bg-light border-0 shadow-sm">
+                        <h6 class="fw-bold text-dark mb-2">🥞 Call Stack (.NET Runtime)</h6>
+                        <div class="font-monospace small">
+                            @foreach (var cs in passoAtual.CallStack)
+                            {
+                                <div class="p-1 bg-white rounded border mb-1 text-secondary text-truncate">
+                                    @cs
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- MODO 3: O QUE FALAR & OBJEÇÕES                                            -->
+    <!-- ========================================================================= -->
+    @if (modoAtivo == ModoVisualizacaoTreinamento.Fala)
+    {
+        <div class="card shadow-sm border-0 p-4 mb-3">
+            <h4 class="fw-bold mb-3">🎙️ Treinador de Comunicação Técnica & Objeções da Banca</h4>
+            <p class="text-muted small">Domine a fala em 3 níveis de profundidade e saiba exatamente o que responder quando for interrompido.</p>
+
+            <h5 class="fw-bold text-primary mt-3 mb-3">1. Modulação de Tempo de Resposta:</h5>
+            <div class="row g-3 mb-4">
+                @foreach (var fala in falasTreino)
+                {
+                    <div class="col-12">
+                        <div class="p-4 bg-light rounded-3 border">
+                            <h6 class="fw-bold text-dark mb-3">📌 @fala.Topico</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-white rounded border h-100">
+                                        <span class="badge bg-secondary mb-1">⏱️ Curto (15 segundos)</span>
+                                        <p class="small text-secondary mb-0">"@fala.ModoCurto15s"</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-white rounded border border-primary h-100">
+                                        <span class="badge bg-primary mb-1">🎙️ Entrevista (60 segundos)</span>
+                                        <p class="small text-dark fw-semibold mb-0">"@fala.ModoEntrevista60s"</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 bg-white rounded border h-100">
+                                        <span class="badge bg-dark mb-1">🧠 Profundo (Arquiteto - 3 min)</span>
+                                        <p class="small text-muted mb-0">"@fala.ModoProfundo3min"</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <h5 class="fw-bold text-danger mt-4 mb-3">2. "O Entrevistador me Interrompeu!":</h5>
+            <div class="row g-3">
+                @foreach (var obj in objecoesAvaliador)
+                {
+                    <div class="col-md-6">
+                        <div class="p-4 bg-light rounded-3 border border-danger border-opacity-25 h-100">
+                            <span class="badge bg-danger mb-2">Interrupção da Banca</span>
+                            <h6 class="fw-bold text-dark mb-2">"@obj.InterrupcaoAvaliador"</h6>
+                            <small class="text-muted d-block mb-3">⚠️ <strong>A armadilha:</strong> @obj.Armadilha</small>
+
+                            <button class="btn btn-sm btn-outline-danger mb-2" @onclick="() => AlternarObjecao(obj.Id)">
+                                @(objecoesAbertas.Contains(obj.Id) ? "Ocultar Resposta de Sênior" : "Ver Resposta de Sênior")
+                            </button>
+
+                            @if (objecoesAbertas.Contains(obj.Id))
+                            {
+                                <div class="p-3 bg-white rounded border border-success mt-2 small">
+                                    <strong class="text-success d-block mb-1">Resposta Recomendada:</strong>
+                                    <p class="mb-2">@obj.RespostaSenior</p>
+                                    <strong class="text-secondary d-block mb-1">Argumentos chave:</strong>
+                                    <ul class="mb-0 text-muted">
+                                        @foreach (var arg in obj.ArgumentosTecnicos)
+                                        {
+                                            <li>@arg</li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- MODO 4: MODO ENTREVISTA REAL COM CRONÔMETRO                               -->
+    <!-- ========================================================================= -->
+    @if (modoAtivo == ModoVisualizacaoTreinamento.Entrevista)
+    {
+        <div class="card shadow-sm border-0 p-4 mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center pb-3 border-bottom mb-4">
+                <div>
+                    <h4 class="fw-bold mb-0">⏱️ Simulação de Entrevista Real (Cronometrada)</h4>
+                    <p class="text-muted small mb-0">Treine a gestão dos 60 minutos de Live Coding com checklist estrito de requisitos.</p>
+                </div>
+                <!-- Cronômetro -->
+                <div class="d-flex align-items-center gap-3 bg-dark text-white px-4 py-2 rounded-3 shadow">
+                    <span class="fs-2 font-monospace fw-bold @(segundosRestantes <= 600 ? "text-danger" : "text-warning")">
+                        @FormatarTempo(segundosRestantes)
+                    </span>
+                    <button class="btn btn-sm btn-primary" @onclick="ToggleCronometro">
+                        @(cronometroRodando ? "Pausar" : "Iniciar")
+                    </button>
+                    <button class="btn btn-sm btn-outline-light" @onclick="ResetCronometro">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Roteiro de 4 Passos -->
+            <h5 class="fw-bold text-dark mb-3">Roteiro Estratégico de Live Coding (60 Minutos):</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-3 border-top border-4 border-primary h-100">
+                        <span class="badge bg-primary font-monospace mb-1">00 - 10 min</span>
+                        <h6 class="fw-bold mb-1">Setup & Domínio</h6>
+                        <small class="text-muted">Alinhar requisitos com a banca e modelar Proprietario e Veiculo com validação real de CPF e Placa.</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-3 border-top border-4 border-success h-100">
+                        <span class="badge bg-success font-monospace mb-1">10 - 25 min</span>
+                        <h6 class="fw-bold mb-1">Application & Regras</h6>
+                        <small class="text-muted">DTOs imutáveis, FluentValidation e Services aplicando a regra do 409 Conflict na exclusão.</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-3 border-top border-4 border-warning h-100">
+                        <span class="badge bg-warning text-dark font-monospace mb-1">25 - 45 min</span>
+                        <h6 class="fw-bold mb-1">Infra & Controllers</h6>
+                        <small class="text-muted">EF Core InMemory, Repositories, Middleware ProblemDetails e Controllers com 201 Created.</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-3 bg-light rounded-3 border-top border-4 border-danger h-100">
+                        <span class="badge bg-danger font-monospace mb-1">45 - 60 min</span>
+                        <h6 class="fw-bold mb-1">Fila Azure & Testes</h6>
+                        <small class="text-muted">BackgroundService escutando a fila e demonstração de 21 testes unitários passando no console!</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rubrica de Autoavaliação -->
+            <h5 class="fw-bold text-dark mb-3">Rubrica Técnica de Autoavaliação (8 Critérios):</h5>
+            <div class="row g-2">
+                @foreach (var crit in criteriosEntrevista)
+                {
+                    <div class="col-md-6">
+                        <label class="p-3 bg-light rounded-3 border d-flex align-items-center gap-2 cursor-pointer w-100">
+                            <input type="checkbox" class="form-check-input" />
+                            <span class="small fw-semibold text-secondary">@crit</span>
+                        </label>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- MODO 5: MATRIZ DE RASTREABILIDADE DE REQUISITOS                           -->
+    <!-- ========================================================================= -->
+    @if (modoAtivo == ModoVisualizacaoTreinamento.Matriz)
+    {
+        <div class="card shadow-sm border-0 p-4 mb-3">
+            <h4 class="fw-bold mb-1">📋 Matriz de Rastreabilidade dos Requisitos</h4>
+            <p class="text-muted small mb-4">Mapeamento direto entre o documento oficial do teste, a implementação no código C# e os testes automatizados.</p>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle small">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Requisito Oficial do Teste</th>
+                            <th>Camada</th>
+                            <th>Arquivo de Implementação</th>
+                            <th>Testes Relacionados</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in matrizItens)
+                        {
+                            <tr>
+                                <td class="font-monospace fw-bold text-primary">@item.Id</td>
+                                <td>
+                                    <div class="fw-semibold">@item.RequisitoOficial</div>
+                                    <small class="text-muted">@item.JustificativaSenior</small>
+                                </td>
+                                <td><span class="badge bg-secondary">@item.CamadaResponsavel</span></td>
+                                <td class="font-monospace text-dark small">@item.ArquivoImplementacao</td>
+                                <td class="font-monospace text-success small">@item.TestesRelacionados</td>
+                                <td><span class="badge bg-success">@item.StatusImplementacao</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+</div>
+
+@code {
+    private ModoVisualizacaoTreinamento modoAtivo = ModoVisualizacaoTreinamento.Aulas;
+
+    // Dados das Aulas
+    private List<ModuloTreinamento> modulos = new();
+    private string moduloSelecionadoId = "mod-01";
+    private ModuloTreinamento? moduloAtual => modulos.FirstOrDefault(m => m.Id == moduloSelecionadoId);
+    private string abaAulaAtiva = "codigo";
+    private bool exibirSolucaoExercicio = false;
+    private Dictionary<string, bool> modulosConcluidos = new();
+    private int modulosConcluidosCount => modulosConcluidos.Values.Count(c => c);
+
+    // Dados do Debugger
+    private List<CenarioDebugItem> cenariosDebug = new();
+    private string cenarioDebugAtivoId = "cadastrar-veiculo-valido";
+    private int passoDebugAtualIndex = 0;
+
+    // Dados da Fala e Objeções
+    private List<FalaTreinoItem> falasTreino = new();
+    private List<ObjecaoAvaliadorItem> objecoesAvaliador = new();
+    private HashSet<string> objecoesAbertas = new();
+
+    // Dados da Entrevista
+    private int segundosRestantes = 3600; // 60 minutos
+    private bool cronometroRodando = false;
+    private System.Threading.Timer? timer;
+    private List<string> criteriosEntrevista = new()
+    {
+        "Correção Funcional: todas as regras de negócio atendidas",
+        "Organização do Código: Clean Architecture com 4 camadas",
+        "Clareza de Comunicação: narrou o raciocínio enquanto programava",
+        "Justificativa Arquitetural: explicou trade-offs e escolhas técnicas",
+        "Tratamento de Erros: RFC 7807 ProblemDetails com status semânticos",
+        "Capacidade de Debugging: soube colocar breakpoints e investigar falhas",
+        "Testabilidade: cobriu regras com testes unitários em xUnit e Moq",
+        "Gestão do Tempo: entregou a solução funcional dentro dos 60 minutos"
+    };
+
+    // Matriz de Rastreabilidade
+    private List<ItemMatrizRastreabilidade> matrizItens = new();
+
+    protected override void OnInitialized()
+    {
+        modulos = ModulosTreinamentoData.ObterModulos();
+        cenariosDebug = DebugScenariosData.ObterCenarios();
+        falasTreino = SpeechData.ObterFalas();
+        objecoesAvaliador = SpeechData.ObterObjecoes();
+        matrizItens = TraceabilityData.ObterMatriz();
+    }
+
+    private void AlternarConclusaoModulo(string id)
+    {
+        modulosConcluidos[id] = !modulosConcluidos.GetValueOrDefault(id, false);
+    }
+
+    private void TrocarCenarioDebug(string id)
+    {
+        cenarioDebugAtivoId = id;
+        passoDebugAtualIndex = 0;
+    }
+
+    private void PassoDebugProximo()
+    {
+        var cenario = cenariosDebug.FirstOrDefault(c => c.Id == cenarioDebugAtivoId);
+        if (cenario != null && passoDebugAtualIndex < cenario.Passos.Count - 1)
+        {
+            passoDebugAtualIndex++;
+        }
+    }
+
+    private void PassoDebugAnterior()
+    {
+        if (passoDebugAtualIndex > 0)
+        {
+            passoDebugAtualIndex--;
+        }
+    }
+
+    private void AlternarObjecao(string id)
+    {
+        if (objecoesAbertas.Contains(id))
+            objecoesAbertas.Remove(id);
+        else
+            objecoesAbertas.Add(id);
+    }
+
+    private void ToggleCronometro()
+    {
+        cronometroRodando = !cronometroRodando;
+        if (cronometroRodando)
+        {
+            timer = new System.Threading.Timer(async _ =>
+            {
+                if (segundosRestantes > 0 && cronometroRodando)
+                {
+                    segundosRestantes--;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }, null, 1000, 1000);
+        }
+        else
+        {
+            timer?.Dispose();
+        }
+    }
+
+    private void ResetCronometro()
+    {
+        timer?.Dispose();
+        cronometroRodando = false;
+        segundosRestantes = 3600;
+    }
+
+    private string FormatarTempo(int totalSegundos)
+    {
+        var minutos = totalSegundos / 60;
+        var segundos = totalSegundos % 60;
+        return $"{minutos:D2}:{segundos:D2}";
+    }
+}

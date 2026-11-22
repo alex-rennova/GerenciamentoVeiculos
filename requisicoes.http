@@ -1,0 +1,118 @@
+@baseUrl = http://localhost:5000
+
+### 1. PROPRIETÁRIOS
+
+### 1.1 Listar todos os proprietários (já vem com dados do Seed)
+GET {{baseUrl}}/api/v1/proprietarios
+Accept: application/json
+
+### 1.2 Obter proprietário por ID (Ayrton Senna)
+GET {{baseUrl}}/api/v1/proprietarios/11111111-1111-1111-1111-111111111111
+Accept: application/json
+
+### 1.3 Cadastrar novo proprietário (com CPF matematicamente válido)
+POST {{baseUrl}}/api/v1/proprietarios
+Content-Type: application/json
+
+{
+  "nome": "Nelson Piquet",
+  "cpf": "86470477002",
+  "dataNascimento": "1952-08-17T00:00:00Z"
+}
+
+### 1.4 Teste de Erro de Validação: CPF Inválido (retorna 400 Bad Request)
+POST {{baseUrl}}/api/v1/proprietarios
+Content-Type: application/json
+
+{
+  "nome": "Usuário Teste",
+  "cpf": "111.111.111-11",
+  "dataNascimento": "1990-01-01T00:00:00Z"
+}
+
+### 1.5 Atualizar proprietário
+PUT {{baseUrl}}/api/v1/proprietarios/33333333-3333-3333-3333-333333333333
+Content-Type: application/json
+
+{
+  "nome": "Felipe Massa Atualizado",
+  "cpf": "52998224725",
+  "dataNascimento": "1981-04-25T00:00:00Z"
+}
+
+### 1.6 Teste de Regra de Negócio: Tentar excluir proprietário com veículos (Ayrton Senna) -> Retorna 409 Conflict
+DELETE {{baseUrl}}/api/v1/proprietarios/11111111-1111-1111-1111-111111111111
+
+### 1.7 Excluir proprietário sem veículos (Felipe Massa) -> Retorna 204 No Content
+DELETE {{baseUrl}}/api/v1/proprietarios/33333333-3333-3333-3333-333333333333
+
+
+### -------------------------------------------------------------------------
+### 2. VEÍCULOS
+
+### 2.1 Listar veículos (sem filtro)
+GET {{baseUrl}}/api/v1/veiculos
+Accept: application/json
+
+### 2.2 Buscar veículos por Placa
+GET {{baseUrl}}/api/v1/veiculos?placa=SEN
+Accept: application/json
+
+### 2.3 Buscar veículos por Modelo
+GET {{baseUrl}}/api/v1/veiculos?modelo=McLaren
+Accept: application/json
+
+### 2.4 Buscar veículos por Nome do Proprietário
+GET {{baseUrl}}/api/v1/veiculos?nomeProprietario=Rubens
+Accept: application/json
+
+### 2.5 Obter veículo por ID
+GET {{baseUrl}}/api/v1/veiculos/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+Accept: application/json
+
+### 2.6 Cadastrar novo veículo (dispara evento para Fila da Azure!)
+POST {{baseUrl}}/api/v1/veiculos
+Content-Type: application/json
+
+{
+  "placa": "PIQ-1981",
+  "modelo": "Brabham BT49",
+  "ano": 1981,
+  "proprietarioId": "11111111-1111-1111-1111-111111111111"
+}
+
+### 2.7 Teste de Regra de Negócio: Cadastrar veículo para proprietário inexistente -> Retorna 404 Not Found
+POST {{baseUrl}}/api/v1/veiculos
+Content-Type: application/json
+
+{
+  "placa": "XYZ-9999",
+  "modelo": "Carro Fantasma",
+  "ano": 2020,
+  "proprietarioId": "00000000-0000-0000-0000-000000000000"
+}
+
+### 2.8 Teste de Erro de Validação: Ano do veículo menor ou igual a 1980 -> Retorna 400 Bad Request
+POST {{baseUrl}}/api/v1/veiculos
+Content-Type: application/json
+
+{
+  "placa": "OLD-1970",
+  "modelo": "Fusca Antigo",
+  "ano": 1970,
+  "proprietarioId": "11111111-1111-1111-1111-111111111111"
+}
+
+### 2.9 Atualizar veículo
+PUT {{baseUrl}}/api/v1/veiculos/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+Content-Type: application/json
+
+{
+  "placa": "SEN-1988",
+  "modelo": "McLaren MP4/4 Turbo",
+  "ano": 1988,
+  "proprietarioId": "11111111-1111-1111-1111-111111111111"
+}
+
+### 2.10 Remover veículo
+DELETE {{baseUrl}}/api/v1/veiculos/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
